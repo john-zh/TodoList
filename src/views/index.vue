@@ -48,7 +48,7 @@
         box-shadow: none;
     }
 
-    a{
+    .drop{
         color: #9ea7b4;
     }
 
@@ -56,6 +56,35 @@
         text-decoration: line-through;
         text-decoration-color: #9ea7b4;
         color: #9ea7b4;
+    }
+
+    .workName{
+        font-size: 125%;
+        font-weight: bold;
+    }
+
+    .beginTime{
+        margin-top: 5px;
+    }
+
+    .bTime{
+        margin-left: 15px;
+    }
+
+    .Description{
+        margin-top: 5px;
+    }
+
+    .comment{
+        margin-top: 5px;
+    }
+
+    .inputComment{
+        margin-top: 5px;
+    }
+
+    a{
+        color: #495060;
     }
 </style>
 <template>
@@ -77,7 +106,7 @@
                     @click="todoDetail=true">
 
 
-
+                    <!-- 任务详情对话框 -->
                     <Modal
                         v-model="todoDetail"
                         title="任务详情"
@@ -85,34 +114,39 @@
                         @on-cancel="detailCancel">
                         <span class="workName">{{todo.content}}</span>
                         <Dropdown trigger="click" class="icon1">
-                            <a href="javascript:void(0)">
+                            <a class="drop" href="javascript:void(0)">
                                 <Icon  type="ios-arrow-down"></Icon>
                             </a>
                             <DropdownMenu slot="list">
                                 <DropdownItem>归档</DropdownItem>
-                                <DropdownItem @on-click="deleteTodo">删除</DropdownItem>
+                                <DropdownItem> <a @click="deleteTodo">删除</a></DropdownItem>
                             </DropdownMenu>
                         </Dropdown>
                         <br>
-                        <span>起始时间：</span>
-                        <Icon type="ios-calendar-outline"></Icon>
-                        {{todo.beginTime}}
-                        <div 
-                            v-show="initDiscribtion" 
-                            @click="editDiscribtion">
-                            <p v-if="todoDiscribtion===''">点击添加描述</p>
-                            <p v-else>{{todoDiscribtion}}</p>
+                        <div class="beginTime">
+                            <span>起始时间：</span>
+                            <span class="bTime">
+                                <Icon type="ios-calendar-outline"></Icon>
+                                {{todo.beginTime}}
+                            </span>
+                        </div>
+                        <div
+                            class="Description" 
+                            v-show="initDescription" 
+                            @click="editDescription">
+                            <p v-if="todo.description===''">点击添加描述</p>
+                            <p v-else>{{todo.description}}</p>
                         </div>
                         <div 
-                            v-show="newDiscribtion"
-                            @keyup.enter="addDiscribtion">
+                            v-show="newDescription"
+                            @keyup.enter="addDescription">
                             <Input 
-                                v-model="todoDiscribtion"
-                                placeholder="敲击回车确认">
+                                v-model="todoDescription"
+                                placeholder="敲击回车添加描述">
                             </Input>
                         </div>
                         <div>
-                            <p>备注：</p>
+                            <p class="comment">备注：</p>
                             <div
                                 :todoComment="todoComment"
                                 v-for="todoComment in todoComments"
@@ -121,16 +155,17 @@
                                 <div>{{todoComment.content}}</div>
                             </div>
                             <Input 
+                                class="inputComment"
                                 v-model="addComment"
-                                placeholder="敲击回车确认"
+                                placeholder="敲击回车添加备注"
                                 @on-keyup.enter="addTodoComment">
                             </Input>
-
                         </div>
                     </Modal>
 
 
 
+                    <!-- 大致任务信息显示 -->
                     <Checkbox v-model="todo.selected">
                         <span :class="{done: todo.selected}">{{todo.content}}</span>
                         <div class="deadline" v-if="todo.time !== ''">
@@ -140,6 +175,8 @@
                         </div>
                     </Checkbox>
                 </div>
+
+                <!-- 添加新任务 -->
                 <div v-show="modal1" class="addItem">
                     <Input 
                         class="inpt"
@@ -154,7 +191,7 @@
                         type="date"
                         @on-change="handleChange1"
                         >
-                        <a href="javascript:void(0)" @click="handleClick1">
+                        <a class="drop" href="javascript:void(0)" @click="handleClick1">
                             <Icon type="ios-calendar-outline"></Icon>
                             <template v-if="value1 === ''">选择截止日期</template>
                             <template v-else>{{ value1 }}</template>
@@ -210,7 +247,7 @@
                         :options="option"
                         type="date"
                         @on-change="handleChange2">
-                        <a href="javascript:void(0)" @click="handleClick2">
+                        <a class="drop" href="javascript:void(0)" @click="handleClick2">
                             <Icon type="ios-calendar-outline"></Icon>
                             <template v-if="value2 === ''">选择截止日期</template>
                             <template v-else>{{ value2 }}</template>
@@ -266,7 +303,7 @@
                         :options="option"
                         type="date"
                         @on-change="handleChange3">
-                        <a href="javascript:void(0)" @click="handleClick3">
+                        <a class="drop" href="javascript:void(0)" @click="handleClick3">
                             <Icon type="ios-calendar-outline"></Icon>
                             <template v-if="value3 === ''">选择截止日期</template>
                             <template v-else>{{ value3 }}</template>
@@ -348,11 +385,11 @@
 
                 todoDetail: false,
 
-                todoDiscribtion: '',
+                todoDescription: '',
 
-                initDiscribtion: true,
+                initDescription: true,
 
-                newDiscribtion: false,
+                newDescription: false,
 
                 todoComments: [],
 
@@ -372,22 +409,31 @@
                 },
             }
         },
+
         methods : {
 
             //任务详情
             detailOk () {
-                this.$Message.info('Clicked ok');
+                
             },
             detailCancel () {
-                this.$Message.info('Clicked cancel');
+                
             },
-            editDiscribtion () {
-                this.initDiscribtion = false;
-                this.newDiscribtion = true;
+            editDescription () {
+                this.initDescription = false;
+                this.newDescription = true;
             },
-            addDiscribtion () {
-                this.initDiscribtion = true;
-                this. newDiscribtion = false;
+            addDescription () {
+                this.initDescription = true;
+                this.newDescription = false;
+                //这里想要把todoDescription赋值给todo.description
+
+
+
+
+
+
+                
             },
             deleteTodo (Id) {
                 this.todos.splice(this.todos.findIndex(todo=>todo.todoId===Id),1);
@@ -416,6 +462,7 @@
                 });
                 todoCommentId++;
                 this.addComment='';
+
             },
 
             //截止日期选择
@@ -457,6 +504,7 @@
                     content:this.inputTodo,
                     selected:false,
                     time: this.value1,
+                    description: this.todoDescription,
                     flag:0,
                     beginTime: year+"-"+month+"-"+day,
                 });
