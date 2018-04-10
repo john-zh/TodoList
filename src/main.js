@@ -6,6 +6,7 @@ import Routers from './router';
 import Util from './libs/util';
 import App from './app.vue';
 import 'iview/dist/styles/iview.css';
+import './assests/main.less';
 
 
 Vue.use(VueRouter);
