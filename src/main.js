@@ -34,7 +34,7 @@ router.afterEach(() => {
     window.scrollTo(0, 0);
 });
 
-
+global.hello = 'hello'
 
 new Vue({
     el: '#app',

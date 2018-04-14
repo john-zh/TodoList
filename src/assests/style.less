@@ -1,3 +1,6 @@
+@white: #fff;
+@grey: #9ea7b4;
+
 .button-group {
     display: flex;
     margin-top: 10px;
@@ -56,11 +59,35 @@
 }
 
 .todo-list {
-    .ivu-card {
-        margin: 5px;
-    }
+    margin: 5px;
     .ivu-card-body {
         padding: 10px;
+    }
+}
+
+.todo-list-none {
+    margin: 5px;
+    .ivu-card-body {
+        padding: 10px;
+    }
+    color: #fff;
+    .ivu-checkbox-inner {
+        border: 1px solid #fff;
+    }
+}
+
+.todo-list-grey {
+    .ivu-card {
+        background: @grey;
+    }
+    margin: 5px;
+    .ivu-card-body {
+        padding: 10px;
+    }
+    color: @grey;
+    .ivu-checkbox-inner {
+        border: 1px solid @grey;
+        background-color: @grey;
     }
 }
 
@@ -94,3 +121,6 @@
     }
 }
 
+.flip-list {
+    transition: transform 1s;
+}
