@@ -128,8 +128,8 @@ export default {
             currentDoms: [],
             // 当前拖动对象节点高度
             currentTop: '',
-            // 当前 todoLists 中所有 todo 的数组
-            targetList: [],
+            // 当前 todoLists 中所有 todo 的索引字典
+            todosDic: [],
             // 当列表间拖动时暂存交换数据
             transInfo: {
                 isTrans: false,
@@ -149,16 +149,16 @@ export default {
     computed: {},
     methods: {
         /**
-         * 每次数据变化后 重新初始化 todoLists 以及 targetList 数据
+         * 每次数据变化后 重新初始化 todoLists 以及 todosDic 数据
          */
         initData() {
             if (localStorage.todoLists) {
                 this.todoLists = JSON.parse(localStorage.getItem('todoLists'))
-                this.targetList = []
+                this.todosDic = {}
                 this.todoLists.forEach((todoList, index_1) => {
                     todoList.todos.forEach((todo, index_2) => {
                         todo.id = `${index_1}-${index_2}`
-                        this.targetList.push(todo)
+                        this.todosDic[todo.id] = todo
                     })
                 })
             } else {
@@ -244,7 +244,8 @@ export default {
          * 清空当前列表
          */
         empty(index) {
-            this.todoLists[index].todos = []
+            this.$set(this.todoLists[index], 'todos', [])
+            // this.todoLists[index].todos = []
             localStorage.todoLists = JSON.stringify(this.todoLists)
             this.initData()
         },
@@ -405,36 +406,47 @@ export default {
         /**
          * 拖动完成 执行数据更新
          */
-        saveDomsToStorage(dom) {
+        saveDomsToStorage(dom, isEnd) {
             // 获取父节点下所有子节点
             let entries = Object.entries(dom.children)
 
             let orders = [],
-                data = [],
-                dic = {}
+                data = []
             // 获取当前子节点排列顺序
             for (const [key, value] of entries) {
                 if (value.id != '') {
                     orders.push(value.id)
                 }
             }
-            // 组装当前所有 todo 数据的索引字典
-            this.targetList.forEach((todo) => {
-                dic[todo.id] = todo
-            })
             // 组装当前 todoList 需要更新的数据
             orders.forEach((order) => {
-                data.push(dic[order])
+                data.push(this.todosDic[order])
             })
-            // 如果是列表间交换 执行之前暂存的数据更新
-            if (this.transInfo.isTrans) {
-                let [current_x, current_y] = this.getDomIndex(this.currentDom)
-                if (this.transInfo.isButton) {
-                    this.todoLists[this.transInfo.targetNode.parentNode.id].todos.push(this.todoLists[current_x].todos[current_y])
-                } else {
-                    let [listIndex, listIndex_y] = this.getDomIndex(this.transInfo.targetNode)
-                    this.todoLists[this.transInfo.targetNode.parentNode.id].todos.splice(listIndex_y, 0, this.todoLists[current_x].todos[current_y])
+
+            if (!isEnd) {
+                // 如果是列表间交换 执行之前暂存的数据更新
+                if (this.transInfo.isTrans) {
+                    let [current_x, current_y] = this.getDomIndex(this.currentDom)
+                    if (this.transInfo.isButton) {
+                        this.todoLists[this.transInfo.targetNode.parentNode.id].todos.push(this.todoLists[current_x].todos[current_y])
+                    } else {
+                        let [listIndex, listIndex_y] = this.getDomIndex(this.transInfo.targetNode)
+                        this.todoLists[this.transInfo.targetNode.parentNode.id].todos.splice(listIndex_y, 0, this.todoLists[current_x].todos[current_y])
+                    }
                 }
+            } else {
+                /**
+                 * 由于 Vue.js 会实时更新节点数据
+                 * 而拖动对象节点和目标节点已经交换
+                 * 这样数据更新后会发生节点看起来并没有交换的情况
+                 * 
+                 * 也就是说页面上的两个节点交换了一次,但是节点中的数据又交换了一次
+                 * 实际效果就等于完全没有交换
+                 * 
+                 * 所以待拖动完成后将拖动对象节点和目标节点还原到原来的位置
+                 */
+                this.currentNext.parentNode.insertBefore(this.currentDom, this.currentNext)
+                this.targetNext.parentNode.insertBefore(this.targetDom, this.targetNext)
             }
             // 更新当前列表
             this.todoLists[dom.id].todos = data
@@ -454,26 +466,13 @@ export default {
                 this.resetTransInfo()
             }
             // 更新当前列表数据
-            this.saveDomsToStorage(this.targetParent)
-
-            /**
-             * 由于 Vue.js 会实时更新节点数据
-             * 而拖动对象节点和目标节点已经交换
-             * 这样数据更新后会发生节点看起来并没有交换的情况
-             * 
-             * 也就是说页面上的两个节点交换了一次,但是节点中的数据又交换了一次
-             * 实际效果就等于完全没有交换
-             * 
-             * 所以待拖动完成后将拖动对象节点和目标节点还原到原来的位置
-             */
-            this.currentNext.parentNode.insertBefore(this.currentDom, this.currentNext)
-            this.targetNext.parentNode.insertBefore(this.targetDom, this.targetNext)
+            this.saveDomsToStorage(this.targetParent, true)
 
             // 将整体数据缓存到浏览器
             localStorage.todoLists = JSON.stringify(this.todoLists)
             // 每次数据更新后都要初始化
             this.initData()
-            
+
             this.resetDom()
         },
         resetTransInfo() {
