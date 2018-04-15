@@ -136,7 +136,8 @@ export default {
                 parentNode: {},
                 isButton: false,
                 targetNode: {}
-            }
+            },
+            targetEv: {}
         }
     },
     mounted() {
@@ -286,7 +287,7 @@ export default {
                 this.currentDom = ev.currentTarget
                 this.currentNext = this.currentDom.nextElementSibling
                 this.currentTop = ev.y
-                // 将当前拖动对象节点变为空白
+                // 调整当前拖动对象节点背景色
                 this.currentDom.className = 'todo-list-none'
             }
         },
@@ -301,6 +302,7 @@ export default {
             // 初始化拖放交换对象
             if (this.targetDom != ev.currentTarget && this.targetDom != this.currentDom) {
                 this.targetDom = ev.currentTarget
+                this.targetEv = ev
                 this.targetParent = this.targetDom.parentNode
                 this.targetNext = this.targetDom.nextElementSibling
             }
@@ -331,8 +333,12 @@ export default {
                     this.transInfo.parentNode = this.currentDom.parentNode
                     this.transInfo.isButton = isButton
                     this.transInfo.targetNode = ev.currentTarget
-                    //目标对象在不同列表默认将当前节点放于目标节点上方
+                    // if (isButton) {
                     ev.currentTarget.parentNode.insertBefore(this.currentDom, ev.currentTarget)
+                    //目标对象在不同列表默认将当前节点放于目标节点下方
+                    // } else {
+                    //     ev.currentTarget.parentNode.insertBefore(this.currentDom, ev.currentTarget.nextElementSibling)
+                    // }
                     //如果是同一列表并且不临近
                 } else {
                     //获取对象间所有节点
@@ -431,7 +437,14 @@ export default {
                         this.todoLists[this.transInfo.targetNode.parentNode.id].todos.push(this.todoLists[current_x].todos[current_y])
                     } else {
                         let [listIndex, listIndex_y] = this.getDomIndex(this.transInfo.targetNode)
-                        this.todoLists[this.transInfo.targetNode.parentNode.id].todos.splice(listIndex_y, 0, this.todoLists[current_x].todos[current_y])
+                        if (this.currentTop > this.targetEv.y) {
+                            console.log('down')
+                            this.todoLists[this.transInfo.targetNode.parentNode.id].todos.splice(listIndex_y + 1, 0, this.todoLists[current_x].todos[current_y])
+                        } else if (this.currentTop < this.targetEv.y) {
+                            this.todoLists[this.transInfo.targetNode.parentNode.id].todos.splice(listIndex_y - 1, 0, this.todoLists[current_x].todos[current_y])
+                        } else {
+                            this.todoLists[this.transInfo.targetNode.parentNode.id].todos.splice(listIndex_y, 0, this.todoLists[current_x].todos[current_y])
+                        }
                     }
                 }
             } else {
@@ -447,7 +460,9 @@ export default {
                  */
                 this.currentNext.parentNode.insertBefore(this.currentDom, this.currentNext)
                 this.targetNext.parentNode.insertBefore(this.targetDom, this.targetNext)
+
             }
+            console.log(orders, data)
             // 更新当前列表
             this.todoLists[dom.id].todos = data
         },
@@ -486,8 +501,11 @@ export default {
         resetDom() {
             this.currentDoms = []
             this.currentDom = {}
+            this.currentNext = {}
             this.targetDom = {}
+            this.targetNext = {}
             this.targetParent = {}
+            this.targetEv = {}
         }
     }
 }
