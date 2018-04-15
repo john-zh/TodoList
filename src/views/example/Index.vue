@@ -133,11 +133,10 @@ export default {
             // 当列表间拖动时暂存交换数据
             transInfo: {
                 isTrans: false,
-                parentNode: {},
-                isButton: false,
                 targetNode: {}
             },
-            targetEv: {}
+            targetEv: {},
+            moveAfterTrans: 0
         }
     },
     mounted() {
@@ -322,16 +321,17 @@ export default {
                 if (result.flag) {
                     //判断拖动对象和目标对象相对位置以执行交换操作
                     if (this.currentTop < ev.y) {
+                        this.moveAfterTrans = -1
                         ev.currentTarget.parentNode.insertBefore(ev.currentTarget, this.currentDom)
                     } else {
+                        this.moveAfterTrans = 1
                         ev.currentTarget.parentNode.insertBefore(this.currentDom, ev.currentTarget)
                     }
                     //如果是不同列表
                 } else if (result.trans) {
+                    this.moveAfterTrans = 0
                     //暂存目标对象相关数据 待拖动完成执行数据更新
                     this.transInfo.isTrans = true
-                    this.transInfo.parentNode = this.currentDom.parentNode
-                    this.transInfo.isButton = isButton
                     this.transInfo.targetNode = ev.currentTarget
                     // if (isButton) {
                     ev.currentTarget.parentNode.insertBefore(this.currentDom, ev.currentTarget)
@@ -412,7 +412,7 @@ export default {
         /**
          * 拖动完成 执行数据更新
          */
-        saveDomsToStorage(dom, isEnd) {
+        saveDomsToStorage(dom) {
             // 获取父节点下所有子节点
             let entries = Object.entries(dom.children)
 
@@ -428,41 +428,6 @@ export default {
             orders.forEach((order) => {
                 data.push(this.todosDic[order])
             })
-
-            if (!isEnd) {
-                // 如果是列表间交换 执行之前暂存的数据更新
-                if (this.transInfo.isTrans) {
-                    let [current_x, current_y] = this.getDomIndex(this.currentDom)
-                    if (this.transInfo.isButton) {
-                        this.todoLists[this.transInfo.targetNode.parentNode.id].todos.push(this.todoLists[current_x].todos[current_y])
-                    } else {
-                        let [listIndex, listIndex_y] = this.getDomIndex(this.transInfo.targetNode)
-                        if (this.currentTop > this.targetEv.y) {
-                            console.log('down')
-                            this.todoLists[this.transInfo.targetNode.parentNode.id].todos.splice(listIndex_y + 1, 0, this.todoLists[current_x].todos[current_y])
-                        } else if (this.currentTop < this.targetEv.y) {
-                            this.todoLists[this.transInfo.targetNode.parentNode.id].todos.splice(listIndex_y - 1, 0, this.todoLists[current_x].todos[current_y])
-                        } else {
-                            this.todoLists[this.transInfo.targetNode.parentNode.id].todos.splice(listIndex_y, 0, this.todoLists[current_x].todos[current_y])
-                        }
-                    }
-                }
-            } else {
-                /**
-                 * 由于 Vue.js 会实时更新节点数据
-                 * 而拖动对象节点和目标节点已经交换
-                 * 这样数据更新后会发生节点看起来并没有交换的情况
-                 * 
-                 * 也就是说页面上的两个节点交换了一次,但是节点中的数据又交换了一次
-                 * 实际效果就等于完全没有交换
-                 * 
-                 * 所以待拖动完成后将拖动对象节点和目标节点还原到原来的位置
-                 */
-                this.currentNext.parentNode.insertBefore(this.currentDom, this.currentNext)
-                this.targetNext.parentNode.insertBefore(this.targetDom, this.targetNext)
-
-            }
-            console.log(orders, data)
             // 更新当前列表
             this.todoLists[dom.id].todos = data
         },
@@ -477,11 +442,24 @@ export default {
             this.currentDom.className = 'todo-list'
             // 如果列表间交换则先处理需要交换的数据
             if (this.transInfo.isTrans) {
-                this.saveDomsToStorage(this.transInfo.parentNode)
+                this.saveDomsToStorage(this.transInfo.targetNode.parentNode)
                 this.resetTransInfo()
             }
             // 更新当前列表数据
             this.saveDomsToStorage(this.targetParent, true)
+
+            /**
+             * 由于 Vue.js 会实时更新节点数据
+             * 而拖动对象节点和目标节点已经交换
+             * 这样数据更新后会发生节点看起来并没有交换的情况
+             * 
+             * 也就是说页面上的两个节点交换了一次,但是节点中的数据又交换了一次
+             * 实际效果就等于完全没有交换
+             * 
+             * 所以待拖动完成后将拖动对象节点和目标节点还原到原来的位置
+             */
+            this.currentNext.parentNode.insertBefore(this.currentDom, this.currentNext)
+            this.targetNext.parentNode.insertBefore(this.targetDom, this.targetNext)
 
             // 将整体数据缓存到浏览器
             localStorage.todoLists = JSON.stringify(this.todoLists)
@@ -493,8 +471,6 @@ export default {
         resetTransInfo() {
             this.transInfo = {
                 isTrans: false,
-                parentNode: {},
-                isButton: false,
                 targetNode: {}
             }
         },
