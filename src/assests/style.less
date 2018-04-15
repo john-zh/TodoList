@@ -1,5 +1,6 @@
 @white: #fff;
 @grey: #9ea7b4;
+@drag: #fff;
 
 .button-group {
     display: flex;
@@ -67,12 +68,21 @@
 
 .todo-list-none {
     margin: 5px;
+    color: @drag;
+    .ivu-checkbox-inner {
+        border-color: @drag;
+        background-color: @drag;
+    }
+    .done {
+        text-decoration: line-through;
+        text-decoration-color: @drag;
+        color: @drag;
+    }
     .ivu-card-body {
         padding: 10px;
     }
-    color: #fff;
     .ivu-checkbox-inner {
-        border: 1px solid #fff;
+        border: 1px solid @drag;
     }
 }
 
