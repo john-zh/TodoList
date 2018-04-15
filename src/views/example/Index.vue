@@ -333,12 +333,8 @@ export default {
                     //暂存目标对象相关数据 待拖动完成执行数据更新
                     this.transInfo.isTrans = true
                     this.transInfo.targetNode = ev.currentTarget
-                    // if (isButton) {
+                    //目标对象在不同列表默认将当前节点放于目标节点上方
                     ev.currentTarget.parentNode.insertBefore(this.currentDom, ev.currentTarget)
-                    //目标对象在不同列表默认将当前节点放于目标节点下方
-                    // } else {
-                    //     ev.currentTarget.parentNode.insertBefore(this.currentDom, ev.currentTarget.nextElementSibling)
-                    // }
                     //如果是同一列表并且不临近
                 } else {
                     //获取对象间所有节点
@@ -458,7 +454,7 @@ export default {
              * 
              * 所以待拖动完成后将拖动对象节点和目标节点还原到原来的位置
              */
-            this.currentNext.parentNode.insertBefore(this.currentDom, this.currentNext)
+            // this.currentNext.parentNode.insertBefore(this.currentDom, this.currentNext)
             this.targetNext.parentNode.insertBefore(this.targetDom, this.targetNext)
 
             // 将整体数据缓存到浏览器
