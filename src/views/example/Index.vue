@@ -116,8 +116,6 @@ export default {
              */
             // 当前拖动对象节点
             currentDom: {},
-            // 当前拖动对象节点向下兄弟节点
-            currentNext: {},
             // 拖动交换对象节点
             targetDom: {},
             // 拖动交换对象节点向下兄弟节点
@@ -284,7 +282,6 @@ export default {
             //初始化当前拖动对象
             if (this.currentDom != ev.currentTarget) {
                 this.currentDom = ev.currentTarget
-                this.currentNext = this.currentDom.nextElementSibling
                 this.currentTop = ev.y
                 // 调整当前拖动对象节点背景色
                 this.currentDom.className = 'todo-list-none'
@@ -454,7 +451,6 @@ export default {
              * 
              * 所以待拖动完成后将拖动对象节点和目标节点还原到原来的位置
              */
-            // this.currentNext.parentNode.insertBefore(this.currentDom, this.currentNext)
             this.targetNext.parentNode.insertBefore(this.targetDom, this.targetNext)
 
             // 将整体数据缓存到浏览器
@@ -473,7 +469,6 @@ export default {
         resetDom() {
             this.currentDoms = []
             this.currentDom = {}
-            this.currentNext = {}
             this.targetDom = {}
             this.targetNext = {}
             this.targetParent = {}
