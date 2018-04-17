@@ -1,7 +1,7 @@
 <template>
 <div id="example">
     <div class="body">
-        <div class="raw" v-for="(todoList, listIndex) in todoLists" :key="listIndex">
+        <div class="raw" v-for="(todoList, listIndex) in todoLists" :key="todoList.id">
             <div class="box">
                 <div class="box-title">
                     <span>{{todoList.title}}</span>
@@ -9,21 +9,21 @@
                         <Icon class="icon1" type="ios-arrow-down"></Icon>
                         <DropdownMenu slot="list">
                             <DropdownItem>
-                                <a @click="empty(listIndex)">
+                                <a @click="empty(todoList.id)">
                                     清空
                                 </a>
                             </DropdownItem>
                         </DropdownMenu>
                     </Dropdown>
                 </div>
-                <div :id="listIndex">
+                <div :id="todoList.id">
                     <i-progress :todoList="todoList.todos"></i-progress>
                     <!-- <transition-group name="flip-list" tag="div"> -->
-                    <div v-for="(todo, index) of todoList.todos" :key="index" :id="`${listIndex}-${index}`" class="todo-list" draggable="true" @dragstart="dragstart($event)" @dragenter="dragenter($event)" @dragend="dragend($event)">
+                    <div v-for="todo of todoList.todos" :key="todo.id" :id="todo.id" class="todo-list" draggable="true" @dragstart="dragstart($event)" @dragenter="dragenter($event)" @dragend="dragend($event)">
                         <Card shadow>
                             <div class="card-content">
                                 <div class="check-box">
-                                    <Checkbox v-model="todo.selected" @change="initData">
+                                    <Checkbox v-model="todo.selected" @on-change="(n) => {onChange(n, todo)}">
                                         <span></span>
                                     </Checkbox>
                                 </div>
@@ -40,10 +40,10 @@
                     </div>
                     <!-- </transition-group> -->
                     <div @dragenter="dragenter($event, true)">
-                        <Button type="text" icon="plus-round" v-if="!newTodo.isAdding || newTodo.index != listIndex" @click="preAddTodo(listIndex)" style="margin-left: -10px;">
+                        <Button type="text" icon="plus-round" v-if="!newTodo.isAdding || newTodo.listId != todoList.id" @click="preAddTodo(todoList.id, listIndex)" style="margin-left: -10px;">
                             添加新任务
                         </Button>
-                        <div v-if="newTodo.isAdding && newTodo.index == listIndex" class="add-new-todo" @keyup.enter="addNewTodo">
+                        <div v-if="newTodo.isAdding && newTodo.listId == todoList.id" class="add-new-todo" @keyup.enter="addNewTodo">
                             <Input ref="input" v-model="newTodo.content" type="textarea"></Input>
                             <div class="bottom-content">
                                 <DatePicker :open="newTodo.open" :value="newTodo.endTime" confirm type="date" @on-change="handleChange">
@@ -85,6 +85,7 @@
 <script>
 // import TodoList from "./TodoList";
 import iProgress from "./iProgress";
+import Service from "../../service/service"
 export default {
     name: 'example',
     components: {
@@ -105,6 +106,7 @@ export default {
             },
             // 新建 todo 暂存对象
             newTodo: {
+                listId: '',
                 index: '',
                 isAdding: false,
                 content: '',
@@ -116,6 +118,8 @@ export default {
              */
             // 当前拖动对象节点
             currentDom: {},
+            // 当前拖动对象节点向下兄弟节点
+            currentNext: {},
             // 拖动交换对象节点
             targetDom: {},
             // 拖动交换对象节点向下兄弟节点
@@ -126,42 +130,61 @@ export default {
             currentDoms: [],
             // 当前拖动对象节点高度
             currentTop: '',
-            // 当前 todoLists 中所有 todo 的索引字典
-            todosDic: [],
-            // 当列表间拖动时暂存交换数据
+            // 标记是否在列表间移动后又在列表内移动
+            moveAfterTrans: 0,
+            // 暂存列表间交换数据
             transInfo: {
                 isTrans: false,
                 targetNode: {}
             },
-            targetEv: {},
-            moveAfterTrans: 0
         }
     },
     mounted() {
         // 下面语句用于清空缓存并初始化所有数据
-        // localStorage.setItem("todoLists", JSON.stringify(this.todoLists))
+        // Service.init()
+
+        // Service.addTodoList({
+        //     title: '要做',
+        //     todos: []
+        // })
 
         // 每次页面刷新初始化
-        this.initData()
+        this.todoLists = Service.getTodoLists()
+
+        // 初始化时计算进度条百分比
+        this.updateProcess()
+    },
+    watch: {
+        todoLists: {
+            handler: function() {
+                this.updateProcess()
+            },
+            deep: true
+        },
     },
     computed: {},
     methods: {
+        
         /**
-         * 每次数据变化后 重新初始化 todoLists 以及 todosDic 数据
+         * 屏蔽 iView 自动更新, 用 jQuery 手动更新进度条
          */
-        initData() {
-            if (localStorage.todoLists) {
-                this.todoLists = JSON.parse(localStorage.getItem('todoLists'))
-                this.todosDic = {}
-                this.todoLists.forEach((todoList, index_1) => {
-                    todoList.todos.forEach((todo, index_2) => {
-                        todo.id = `${index_1}-${index_2}`
-                        this.todosDic[todo.id] = todo
-                    })
-                })
-            } else {
-                localStorage.setItem("todoLists", JSON.stringify(this.todoLists))
-            }
+        updateProcess() {
+            this.$nextTick(function() {
+                if ($('.ivu-progress-bg').length != 0) {
+                    for (let i = 0; i < $($('.ivu-progress-bg')).length; i++) {
+                        let processBg = $('.ivu-progress-bg')[i]
+                        let processText = $('.ivu-progress-text')[i]
+                        let parent = $($('.progress')[i]).parent()
+                        let children = parent.find('.todo-list')
+                        let checked = children.find('.ivu-checkbox-checked')
+                        let todo = children.length,
+                            done = checked.length
+                        let percent = todo == 0 || done == 0 ? 0 : done / todo.toFixed(2) * 100
+                        $(processBg).css('width', `${percent}%`)
+                        $(processText).text(`${done}/${todo}`)
+                    }
+                }
+            })
         },
 
         /**
@@ -183,8 +206,7 @@ export default {
                 todos: []
             }
             this.todoLists.push(data)
-            localStorage.todoLists = JSON.stringify(this.todoLists)
-            this.initData()
+            Service.addTodoList(data)
             this.newTodoList.title = ''
             this.newTodoList.isAdding = false
         },
@@ -193,8 +215,9 @@ export default {
          * @augments index 当前列表索引
          * 点击添加按钮展示输入框
          */
-        preAddTodo(index) {
+        preAddTodo(id, index) {
             this.newTodo.isAdding = true
+            this.newTodo.listId = id
             this.newTodo.index = index
             // 输入框自动获取焦点
             this.$nextTick(function() {
@@ -212,8 +235,7 @@ export default {
                 endTime: this.newTodo.endTime,
             }
             this.todoLists[this.newTodo.index].todos.push(data)
-            localStorage.setItem("todoLists", JSON.stringify(this.todoLists))
-            this.initData()
+            Service.addTodo(data, this.newTodo.listId)
             this.resetNewTodo()
         },
 
@@ -231,48 +253,28 @@ export default {
         resetNewTodo() {
             this.newTodo = {
                 index: this.newTodo.index,
+                listId: this.newTodo.listId,
                 isAdding: true,
                 content: '',
                 endTime: '',
                 open: false
             }
         },
+        
+        /**
+         * 处理 checkbox 状态改变
+         */
+        onChange(value, todo) {
+            todo.selected = value
+            Service.updateTodo(todo)
+        },
 
         /**
          * 清空当前列表
          */
         empty(index) {
-            this.$set(this.todoLists[index], 'todos', [])
-            // this.todoLists[index].todos = []
-            localStorage.todoLists = JSON.stringify(this.todoLists)
-            this.initData()
-        },
-
-        /**
-         * @augments dom 对象节点
-         * 获取对象节点数据在 todoLists 中的位置
-         */
-        getDomIndex(dom) {
-            let index = []
-            let flag = false
-            for (let x in this.todoLists) {
-                let tempList = this.todoLists[x]
-                for (let y in tempList.todos) {
-                    let todo = tempList.todos[y]
-                    try {
-                        if (todo.id == dom.id) {
-                            index = [x, y]
-                            flag = true
-                            break
-                        }
-                    } catch (err) {
-                        console.log('当前 todo 出现异常', todo)
-                    }
-                }
-                if (flag)
-                    break
-            }
-            return index
+            this.todoLists[index].todos = []
+            Service.updateTodos([], index)
         },
 
         /**
@@ -282,6 +284,7 @@ export default {
             //初始化当前拖动对象
             if (this.currentDom != ev.currentTarget) {
                 this.currentDom = ev.currentTarget
+                this.currentNext = ev.currentTarget.nextElementSibling
                 this.currentTop = ev.y
                 // 调整当前拖动对象节点背景色
                 this.currentDom.className = 'todo-list-none'
@@ -296,20 +299,20 @@ export default {
             // 阻止浏览器的默认拖放行为
             ev.preventDefault()
             // 初始化拖放交换对象
-            if (this.targetDom != ev.currentTarget && this.targetDom != this.currentDom) {
-                this.targetDom = ev.currentTarget
-                this.targetEv = ev
-                this.targetParent = this.targetDom.parentNode
-                this.targetNext = this.targetDom.nextElementSibling
-            }
             // 如果拖动对象 不是 当前节点 则执行交换
             if (this.currentDom != ev.currentTarget) {
+                if (this.targetDom != ev.currentTarget && this.targetDom != this.currentDom) {
+                    this.targetDom = ev.currentTarget
+                    this.targetParent = this.targetDom.parentNode
+                    this.targetNext = this.targetDom.nextElementSibling
+                }
                 //将目标列表所有节点放进currentDoms
                 this.currentDoms = []
-                let entries = Object.entries(ev.currentTarget.parentNode.children)
-                for (const [key, value] of entries) {
-                    if (value.id != '') {
-                        this.currentDoms.push(value)
+                let children = ev.currentTarget.parentNode.children
+                for (let i = 0; i < children.length; i++){
+                    let item = children[i]
+                    if (item.id != '') {
+                        this.currentDoms.push(item)
                     }
                 }
                 //判断拖动对象和目标对象是否临近 并判断是否同一个列表
@@ -406,23 +409,16 @@ export default {
          * 拖动完成 执行数据更新
          */
         saveDomsToStorage(dom) {
-            // 获取父节点下所有子节点
-            let entries = Object.entries(dom.children)
-
-            let orders = [],
-                data = []
+            let orders = []
             // 获取当前子节点排列顺序
-            for (const [key, value] of entries) {
-                if (value.id != '') {
-                    orders.push(value.id)
+            for (let i = 0; i < dom.children.length; i++) {
+                const item = dom.children[i]
+                if (item.id != '') {
+                    orders.push(item.id)
                 }
             }
-            // 组装当前 todoList 需要更新的数据
-            orders.forEach((order) => {
-                data.push(this.todosDic[order])
-            })
-            // 更新当前列表
-            this.todoLists[dom.id].todos = data
+            
+            Service.updateTodos(orders, dom.id)
         },
 
         /** 
@@ -433,38 +429,19 @@ export default {
             ev.preventDefault()
             // 还原拖动对象样式
             this.currentDom.className = 'todo-list'
-            // 如果列表间交换则先处理需要交换的数据
+
+            // 如果列表间拖动, 先更新源列表
             if (this.transInfo.isTrans) {
                 this.saveDomsToStorage(this.transInfo.targetNode.parentNode)
                 this.resetTransInfo()
             }
-            // 更新当前列表数据
-            this.saveDomsToStorage(this.targetParent, true)
 
-            /**
-             * 由于 Vue.js 会实时更新节点数据
-             * 而拖动对象节点和目标节点已经交换
-             * 这样数据更新后会发生节点看起来并没有交换的情况
-             * 
-             * 也就是说页面上的两个节点交换了一次,但是节点中的数据又交换了一次
-             * 实际效果就等于完全没有交换
-             * 
-             * 所以待拖动完成后将拖动对象节点和目标节点还原到原来的位置
-             */
-            this.targetNext.parentNode.insertBefore(this.targetDom, this.targetNext)
+            // 更新当前列表
+            this.saveDomsToStorage(this.currentNext.parentNode)
 
-            // 将整体数据缓存到浏览器
-            localStorage.todoLists = JSON.stringify(this.todoLists)
-            // 每次数据更新后都要初始化
-            this.initData()
+            this.updateProcess()
 
             this.resetDom()
-        },
-        resetTransInfo() {
-            this.transInfo = {
-                isTrans: false,
-                targetNode: {}
-            }
         },
         resetDom() {
             this.currentDoms = []
@@ -472,8 +449,13 @@ export default {
             this.targetDom = {}
             this.targetNext = {}
             this.targetParent = {}
-            this.targetEv = {}
-        }
+        },
+        resetTransInfo() {
+            this.transInfo = {
+                isTrans: false,
+                targetNode: {}
+            }
+        },
     }
 }
 </script>

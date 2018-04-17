@@ -13,6 +13,9 @@ export default {
 
         }
     },
+    mounted() {
+        
+    },
     computed: {
         todoDone() {
             let todoDone = 0
@@ -21,15 +24,18 @@ export default {
                     todoDone += 1
                 }
             })
-            return todoDone
+            // return todoDone
+            return 0
         },
         todoNum() {
-            return this.todoList.length
+            // return this.todoList.length
+            return 0
         },
         percent() {
-            if (this.todoNum == 0)
-                return
-            return (this.todoDone / this.todoNum).toFixed(2) * 100
+            // if (this.todoNum == 0)
+            //     return
+            // return (this.todoDone / this.todoNum).toFixed(2) * 100
+            return 0
         }
     }
 }
