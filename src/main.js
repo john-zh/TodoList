@@ -7,6 +7,7 @@ import Util from './libs/util';
 import App from './app.vue';
 import 'iview/dist/styles/iview.css';
 import './assests/main.less';
+import $ from 'jquery';
 
 
 Vue.use(VueRouter);
