@@ -1,6 +1,7 @@
 @white: #fff;
 @grey: #9ea7b4;
 @drag: rgb(206, 197, 206);
+@blue-grey: #6f8092;
 
 .button-group {
     display: flex;
@@ -64,12 +65,18 @@
     .ivu-card-body {
         padding: 10px;
     }
+    a {
+        color: #495060;
+    }
 }
 
 .todo-list-none {
     margin: 5px;
     color: @drag;
-    .ivu-checkbox-inner {
+    a {
+        color: @drag;
+    }
+    .ivu-checkbox-checked .ivu-checkbox-inner {
         border-color: @drag;
         background-color: @drag;
     }
@@ -105,7 +112,7 @@
     margin-top: -2px;
     > span {
         font-size: 14px;
-        font-weight: bold;
+        font-weight: 500;
     }
 }
 
@@ -134,3 +141,46 @@
 .flip-list {
     transition: transform 1s;
 }
+
+.ivu-dropdown-item {
+    text-align: center;
+    a {
+        color: #495060;
+        font-size: 13px;
+    }
+}
+
+.show-todo {
+    color: @blue-grey;
+    .ivu-checkbox {
+        margin-top: 5px;
+    }
+    .ivu-input-wrapper {
+        margin-top: -5px;
+    }
+    .ivu-modal-header p {
+        color: @blue-grey;
+        font-size: 16px;
+    }
+    a {
+        color: @blue-grey;
+        font-size: 17px;
+        font-weight: 400;
+    }
+    .content-line {
+        margin-top: 15px;
+        a {
+            color: @blue-grey;
+            font-size: 14px;
+            font-weight: 400;
+        }
+        .date-picker {
+            margin-right: 40px;
+        }
+    }
+}
+
+.add-todo {
+    outline:none;
+}
+

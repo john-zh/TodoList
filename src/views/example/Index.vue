@@ -9,8 +9,13 @@
                         <Icon class="icon1" type="ios-arrow-down"></Icon>
                         <DropdownMenu slot="list">
                             <DropdownItem>
-                                <a @click="empty(todoList.id)">
+                                <a @click="emptyTodoList(todoList.id, listIndex)">
                                     清空
+                                </a>
+                            </DropdownItem>
+                            <DropdownItem divided>
+                                <a @click="deleteTodoList(todoList.id, listIndex)">
+                                    删除
                                 </a>
                             </DropdownItem>
                         </DropdownMenu>
@@ -20,33 +25,37 @@
                     <i-progress :todoList="todoList.todos"></i-progress>
                     <!-- <transition-group name="flip-list" tag="div"> -->
                     <div v-for="todo of todoList.todos" :key="todo.id" :id="todo.id" class="todo-list" draggable="true" @dragstart="dragstart($event)" @dragenter="dragenter($event)" @dragend="dragend($event)">
-                        <Card shadow>
-                            <div class="card-content">
-                                <div class="check-box">
-                                    <Checkbox v-model="todo.selected" @on-change="(n) => {onChange(n, todo)}">
-                                        <span></span>
-                                    </Checkbox>
-                                </div>
-                                <div class="todo-content">
-                                    <span :class="{done: todo.selected}">{{todo.content}}</span>
-                                    <div class="deadline" v-if="todo.endTime">
-                                        <Icon type="clock"></Icon>
-                                        {{todo.endTime}}
-                                        <span>截止</span>
+                        <a style="cursor:pointer" @click.stop="showTodo(todo)">
+                            <Card shadow>
+                                <div class="card-content">
+                                    <div class="check-box">
+                                        <a @click.stop="">
+                                            <Checkbox v-model="todo.selected" @on-change="(n) => {onChange(n, todo)}">
+                                                <span></span>
+                                            </Checkbox>
+                                        </a>
+                                    </div>
+                                    <div class="todo-content">
+                                        <span :class="{done: todo.selected}">{{todo.content}}</span>
+                                        <div class="deadline" v-if="todo.endTime">
+                                            <Icon type="clock"></Icon>
+                                            {{todo.endTime}}
+                                            <span>截止</span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </Card>
+                            </Card>
+                        </a>
                     </div>
                     <!-- </transition-group> -->
-                    <div @dragenter="dragenter($event, true)">
+                    <div @dragenter="dragenter($event, true)" tabindex="-1" ref="addTodo" @focus="newTodo.isAdding = true" @blur="newTodo.isAdding = newTodo.open = false" class="add-todo">
                         <Button type="text" icon="plus-round" v-if="!newTodo.isAdding || newTodo.listId != todoList.id" @click="preAddTodo(todoList.id, listIndex)" style="margin-left: -10px;">
                             添加新任务
                         </Button>
-                        <div v-if="newTodo.isAdding && newTodo.listId == todoList.id" class="add-new-todo" @keyup.enter="addNewTodo">
-                            <Input ref="input" v-model="newTodo.content" type="textarea"></Input>
+                        <div v-if="newTodo.isAdding && newTodo.listId == todoList.id" class="add-new-todo">
+                            <Input ref="input" v-model="newTodo.content" @on-blur="newTodo.isAdding = newTodo.open = false" @on-focus="newTodo.isAdding = true" @on-keydown.enter="addNewTodo($event)" type="textarea"></Input>
                             <div class="bottom-content">
-                                <DatePicker :open="newTodo.open" :value="newTodo.endTime" confirm type="date" @on-change="handleChange">
+                                <DatePicker :open="newTodo.open" :value="newTodo.endTime" confirm type="date" @on-ok="newTodo.open = false" @on-change="handleChange">
                                     <a @click="newTodo.open = !newTodo.open">
                                         <Icon type="ios-calendar-outline"></Icon>
                                         <span v-if="!newTodo.endTime">选择截止日期</span>
@@ -69,8 +78,8 @@
                 <Button type="text" icon="plus-round" v-if="!newTodoList.isAdding" @click="preAddTodoList" id="newItem">
                     新建列表
                 </Button>
-                <div v-if="newTodoList.isAdding" @keyup.enter="addTodoList">
-                    <Input v-model="newTodoList.title" ref="title"></Input>
+                <div v-if="newTodoList.isAdding">
+                    <Input v-model="newTodoList.title" @on-keydown.enter="addTodoList($event)" size="large" ref="title"></Input>
                     <div class="button-group">
                         <Button type="primary" @click="addTodoList">确定</Button>
                         <Button @click="newTodoList.isAdding = false">取消</Button>
@@ -78,6 +87,46 @@
                 </div>
             </div>
         </div>
+        <Modal v-model="todoModal.show" class-name="show-todo">
+            <p slot="header">
+                <span>{{todoModal.title}}</span>
+            </p>
+            <div>
+                <Row>
+                    <Col span="2">
+                    <Checkbox v-model="todoModal.todo.selected" @on-change="(n) => {onChange(n, todoModal.todo)}">
+                        <span></span>
+                    </Checkbox>
+                    </Col>
+                    <Col span="22">
+                    <div>
+                        <a v-show="!todoModal.editContent" @click="showModalInput">
+                            <span :class="{done: todoModal.todo.selected}">{{todoModal.todo.content}}</span>
+                        </a>
+                        <Input v-show="todoModal.editContent" ref="modalInput" v-model="todoModal.todo.content" @on-blur="todoModal.editContent = false" :autosize="true" type="textarea"></Input>
+                    </div>
+                    <div class="content-line">
+                        <DatePicker class="date-picker" :open="todoModal.openStartTime" :value="todoModal.todo.startTime" type="date" @on-change="handleChangeStart">
+                            <a @click="todoModal.openStartTime = true">
+                                <Icon size="22" type="ios-calendar-outline"></Icon>
+                                <span v-show="!todoModal.todo.startTime">开始时间</span>
+                                <span v-show="todoModal.todo.startTime">{{todoModal.todo.startTime}}</span>
+                            </a>
+                        </DatePicker>
+                        <DatePicker :open="todoModal.openEndTime" :value="todoModal.todo.endTime" type="date" @on-change="handleChangeEnd">
+                            <a @click="todoModal.openEndTime = true">
+                                <Icon size="22" type="clock"></Icon>
+                                <span v-show="!todoModal.todo.endTime">截止时间</span>
+                                <span v-show="todoModal.todo.endTime">{{todoModal.todo.endTime}}</span>
+                            </a>
+                        </DatePicker>
+                    </div>
+                    </Col>
+                </Row>
+            </div>
+            <p slot="footer">
+            </p>
+        </Modal>
     </div>
 </div>
 </template>
@@ -111,7 +160,17 @@ export default {
                 isAdding: false,
                 content: '',
                 endTime: '',
-                open: false
+                open: false,
+                openStartTime: false,
+            },
+            // todo 展示 暂存对象
+            todoModal: {
+                title: '',
+                show: false,
+                todo: {},
+                editContent: false,
+                openStartTime: false,
+                openEndTime: false,
             },
             /**
              * 拖动时暂存对象节点
@@ -164,7 +223,7 @@ export default {
     },
     computed: {},
     methods: {
-        
+
         /**
          * 屏蔽 iView 自动更新, 用 jQuery 手动更新进度条
          */
@@ -200,15 +259,28 @@ export default {
         /**
          * 添加新的 todoList
          */
-        addTodoList() {
+        addTodoList(ev) {
+            let title = this.newTodoList.title.replace(/[\r\n]/g, '')
+            if (title == '') {
+                if (ev) {
+                    ev.returnValue = false
+                }
+                return false
+            }
             let data = {
                 title: this.newTodoList.title,
                 todos: []
             }
             this.todoLists.push(data)
-            Service.addTodoList(data)
+            let id = Service.addTodoList(data)
             this.newTodoList.title = ''
             this.newTodoList.isAdding = false
+            this.newTodo.isAdding = true
+            this.newTodo.listId = id
+            this.newTodo.index = this.todoLists.length - 1
+            this.$nextTick(function() {
+                this.$refs.input[0].focus()
+            })
         },
 
         /**
@@ -228,15 +300,49 @@ export default {
         /**
          * 添加新的 todo
          */
-        addNewTodo() {
+        addNewTodo(ev) {
+            let content = this.newTodo.content.replace(/[\r\n]/g, '')
+            if (content == '') {
+                ev.returnValue = false
+                return false
+            }
             let data = {
-                content: this.newTodo.content,
+                content: content,
                 selected: false,
+                startTime: '',
                 endTime: this.newTodo.endTime,
             }
             this.todoLists[this.newTodo.index].todos.push(data)
             Service.addTodo(data, this.newTodo.listId)
             this.resetNewTodo()
+            ev.returnValue = false
+        },
+
+        /**
+         * 展示 todo 详情
+         */
+        showTodo(todo) {
+            this.resetTodoModal()
+            let parent = $($(`#${todo.id}`)).parent()
+            let title = ($(parent).prev())
+            this.todoModal.title = title[0].innerText
+            this.todoModal.todo = todo
+            this.todoModal.show = true
+        },
+
+        showModalInput() {
+            this.todoModal.editContent = true
+            this.$nextTick(function() {
+                this.$refs.modalInput.focus()
+            })
+        },
+
+        handleFocus() {
+            this.newTodo.isAdding = true
+        },
+
+        handleBlur() {
+            this.newTodo.isAdding = false
         },
 
         /**
@@ -245,6 +351,16 @@ export default {
         handleChange(value) {
             this.newTodo.endTime = value
             this.newTodo.open = false;
+        },
+
+        handleChangeStart(value) {
+            this.todoModal.todo.startTime = value
+            this.todoModal.openStartTime = false;
+        },
+
+        handleChangeEnd(value) {
+            this.todoModal.todo.endTime = value
+            this.todoModal.openEndTime = false;
         },
 
         /**
@@ -260,7 +376,7 @@ export default {
                 open: false
             }
         },
-        
+
         /**
          * 处理 checkbox 状态改变
          */
@@ -272,9 +388,18 @@ export default {
         /**
          * 清空当前列表
          */
-        empty(index) {
-            this.todoLists[index].todos = []
-            Service.updateTodos([], index)
+        emptyTodoList(id, index) {
+            setTimeout(() => {
+                console.log('empty')
+                this.todoLists[index].todos = []
+                Service.updateTodos([], id)
+            }, 100);
+        },
+
+        deleteTodoList(id, index) {
+            console.log('delete')
+            this.todoLists.splice(index, 1)
+            Service.deleteTodoList(id)
         },
 
         /**
@@ -309,7 +434,7 @@ export default {
                 //将目标列表所有节点放进currentDoms
                 this.currentDoms = []
                 let children = ev.currentTarget.parentNode.children
-                for (let i = 0; i < children.length; i++){
+                for (let i = 0; i < children.length; i++) {
                     let item = children[i]
                     if (item.id != '') {
                         this.currentDoms.push(item)
@@ -417,7 +542,7 @@ export default {
                     orders.push(item.id)
                 }
             }
-            
+
             Service.updateTodos(orders, dom.id)
         },
 
@@ -454,6 +579,14 @@ export default {
             this.transInfo = {
                 isTrans: false,
                 targetNode: {}
+            }
+        },
+        resetTodoModal() {
+            this.todoModal = {
+                title: '',
+                show: false,
+                todo: {},
+                editContent: false
             }
         },
     }
