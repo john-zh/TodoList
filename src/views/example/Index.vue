@@ -53,7 +53,7 @@
                             添加新任务
                         </Button>
                         <div v-if="newTodo.isAdding && newTodo.listId == todoList.id" class="add-new-todo">
-                            <Input ref="input" v-model="newTodo.content" @on-blur="newTodo.isAdding = newTodo.open = false" @on-focus="newTodo.isAdding = true" @on-keydown.enter="addNewTodo($event)" type="textarea"></Input>
+                            <Input ref="input" v-model="newTodo.content" @on-focus="newTodo.isAdding = true" @on-keydown.enter="addNewTodo($event)" type="textarea"></Input>
                             <div class="bottom-content">
                                 <DatePicker :open="newTodo.open" :value="newTodo.endTime" confirm type="date" @on-ok="newTodo.open = false" @on-change="handleChange">
                                     <a @click="newTodo.open = !newTodo.open">
