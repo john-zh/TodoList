@@ -40,6 +40,7 @@ let service = {
         todoListIds.push(todoList.id)
         localStorage.setItem('todoListIds', JSON.stringify(todoListIds))
         localStorage.setItem('todoListDic', JSON.stringify(todoListDic))
+        return todoList.id
     },
     updateTodoList(todoList, id) {
         let todoListDic = JSON.parse(localStorage.getItem('todoListDic'))
@@ -53,7 +54,7 @@ let service = {
         let index = todoListIds.findIndex((x) => {
             return x == id
         })
-        todoListId.splice(index, 1)
+        todoListIds.splice(index, 1)
         localStorage.setItem('todoListIds', JSON.stringify(todoListIds))
         localStorage.setItem('todoListDic', JSON.stringify(todoListDic))
     },
@@ -61,7 +62,6 @@ let service = {
         let todoListDic = JSON.parse(localStorage.getItem('todoListDic'))
         let todoList = todoListDic[id]
         todoList.todos = todos
-        console.log(JSON.stringify(todoListDic))
         localStorage.setItem('todoListDic', JSON.stringify(todoListDic))
     },
     addTodo(todo, id) {
@@ -71,7 +71,6 @@ let service = {
         let newId = ++localStorage.todoId
         todo.id = newId
         todoDic[newId] = todo
-        console.log(id, JSON.stringify(todoListDic),JSON.stringify(todoList))
         todoList.todos.push(newId)
         localStorage.setItem('todoListDic', JSON.stringify(todoListDic))
         localStorage.setItem('todoDic', JSON.stringify(todoDic))
